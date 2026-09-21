@@ -100,15 +100,26 @@ def make_qr(url, out_path):
 
 
 def kit_version():
-    """ビルドに使った kit のコミット。git 管理下でなければ unknown。"""
-    try:
-        out = subprocess.run(["git", "-C", os.path.dirname(KIT_DIR), "rev-parse", "--short", "HEAD"],
+    """ビルドに使った kit のコミット。git 管理下でなければ unknown。
+
+    kit に未コミットの変更があるときは -dirty を付ける。そのときの docs は
+    どのコミットからも再現できないので、kit を先にコミットしてから
+    ビルドしなおすこと。
+    """
+    repo = os.path.dirname(KIT_DIR)
+
+    def git(*args):
+        out = subprocess.run(("git", "-C", repo) + args,
                              capture_output=True, text=True, timeout=10)
-        if out.returncode == 0 and out.stdout.strip():
-            return out.stdout.strip()
+        return out.stdout.strip() if out.returncode == 0 else None
+
+    try:
+        rev = git("rev-parse", "--short", "HEAD")
+        if not rev:
+            return "unknown"
+        return rev + "-dirty" if git("status", "--porcelain") else rev
     except Exception:
-        pass
-    return "unknown"
+        return "unknown"
 
 
 # ---- 画像 -----------------------------------------------------------------
