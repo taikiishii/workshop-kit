@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+
+# OS / エディタ
+Thumbs.db
+Desktop.ini
+desktop.ini
+.DS_Store
+*.tmp
+.vscode/*
+!.vscode/settings.json
+.idea/
+*.swp
