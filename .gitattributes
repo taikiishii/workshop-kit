@@ -1,0 +1,5 @@
+# 共通部品は、どのパソコンで clone しても同じバイトになるように改行を LF に固定する。
+# （各教材の docs/assets/ へはこのファイルをそのままコピーするため）
+* text=auto eol=lf
+
+*.png binary
