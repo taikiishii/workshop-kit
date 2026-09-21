@@ -83,4 +83,11 @@ Python 3.11 以上（`tomllib` を使います）、`segno`（QR生成）、`pil
 
 ## ライセンス
 
-MIT License — Copyright © 2026 Taiki Ishii
+プログラム（Python / CSS / JavaScript）とテンプレート・文書は **MIT ライセンス**
+（[wskit/files/LICENSE.txt](wskit/files/LICENSE.txt)）です。
+
+※ 同梱している**イラスト**（`wskit/assets/hakase.png` / `hakase-face.png`）は
+MIT の対象外です。再配布・改変の際は、権利者の利用条件をご確認のうえ、
+必要に応じて差し替えてください（差し替えるだけで全教材に反映されます）。
+
+Copyright © 2026 Taiki Ishii
