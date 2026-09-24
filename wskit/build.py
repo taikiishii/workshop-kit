@@ -323,13 +323,19 @@ def _partial(site, name):
     return _read(path).replace("\r\n", "\n").strip("\n")
 
 
+def _natural(s):
+    """章の id を「数は数として」比べる形にする。x9 < x10 になるように。
+    （ただの文字の順だと x10 が x1 と x2 のあいだに入ってしまう）"""
+    return [int(t) if t.isdigit() else t for t in re.split(r"(\d+)", str(s))]
+
+
 def build_index(site, chapters, index_tpl, docs):
     blocks = []
     for sec in site.sections:
         items = [(m, d) for (m, d) in chapters if m.get("section") == sec.name]
         if not items:
             continue
-        items.sort(key=lambda t: t[0].get("id", t[1]))
+        items.sort(key=lambda t: _natural(t[0].get("id", t[1])))
         cards = "\n\n".join(card_html(m, d) for m, d in items)
         blocks.append(
             '  <!-- ============ %s ============ -->\n'
