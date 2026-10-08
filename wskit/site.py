@@ -20,6 +20,39 @@ class SiteError(Exception):
     """site.toml の書きかたが足りない・まちがっているとき。"""
 
 
+# [theme] に書ける項目。値の形（色1つ／色の並び）と、並びの長さ。
+#   None … 1つ以上いくつでも
+THEME_KEYS = {
+    "bg":           ("color", None),   # 画面の背景色（もくじ・章ページ）
+    "bg_dots":      ("list", 2),       # 背景の水玉 2色（rgba で うすく書く）
+    "rainbow":      ("list", None),    # ページ上部・もくじの終わりの虹色の線
+    "slide_frames": ("list", None),    # 章ページのスライドの枠色（順にくり返す）
+    "cover_glow":   ("list", 2),       # 表紙スライドのやわらかい光 2色（左上・右下）
+    "hint_bg":      ("color", None),   # 博士の吹き出しの背景色
+    "qr_frame":     ("color", None),   # もくじの QR コードの枠色
+    "qr_dark":      ("color", None),   # QR コードの点の色（白地で読める濃い色にする）
+}
+
+
+def _load_theme(data):
+    theme = dict(data.get("theme", {}))
+    for k, v in theme.items():
+        if k not in THEME_KEYS:
+            raise SiteError("site.toml の [theme] に %s は書けません。使えるのは: %s"
+                            % (k, " / ".join(THEME_KEYS)))
+        kind, n = THEME_KEYS[k]
+        if kind == "color":
+            if not isinstance(v, str) or not v:
+                raise SiteError("site.toml の [theme] の %s は色の文字列にしてください" % k)
+        else:
+            if not isinstance(v, list) or not v or not all(isinstance(x, str) and x for x in v):
+                raise SiteError("site.toml の [theme] の %s は色の文字列の並び [ … ] にしてください" % k)
+            if n is not None and len(v) != n:
+                raise SiteError("site.toml の [theme] の %s は %d 色にしてください（いま %d 色）"
+                                % (k, n, len(v)))
+    return theme
+
+
 @dataclass
 class Section:
     """もくじのひとかたまり（基礎編・発展編…）。並び順は site.toml の順。"""
@@ -44,6 +77,7 @@ class Site:
     accent_bright: str = "#00b5a8"  # ヘッダーのグラデーションの明るいほう
     palette: dict = field(default_factory=dict)        # color: → カードの枠色
     level_palette: dict = field(default_factory=dict)  # color: → 難易度ラベルの背景色
+    theme: dict = field(default_factory=dict)          # [theme] … 共通部品の飾りの色（書いた項目だけ上書き）
     sections: list = field(default_factory=list)
     namespaces: list = field(default_factory=list)     # コードで青くする語
     mascot_auto: bool = True        # 短い吹き出しを顔アイコンにする
@@ -122,6 +156,7 @@ def load(root):
         accent_bright=s.get("accent_bright", s.get("accent", "#00b5a8")),
         palette=palette,
         level_palette=level_palette,
+        theme=_load_theme(data),
         sections=sections,
         namespaces=list(code.get("namespaces", [])),
         mascot_auto=bool(mascot.get("auto", True)),

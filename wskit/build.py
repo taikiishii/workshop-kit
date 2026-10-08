@@ -92,10 +92,13 @@ def parse_frontmatter(text):
     return meta, body
 
 
-def make_qr(url, out_path):
+QR_DARK = "#123a36"   # QR コードの点の既定の色（site.toml の [theme] qr_dark で変えられる）
+
+
+def make_qr(url, out_path, dark=QR_DARK):
     import segno
     q = segno.make(url, error="m")
-    q.save(out_path, kind="svg", dark="#123a36", light="#ffffff",
+    q.save(out_path, kind="svg", dark=dark, light="#ffffff",
            border=4, xmldecl=False, svgns=True, nl=False)
 
 
@@ -177,6 +180,8 @@ def site_theme_css(site):
            "  --accent-bright:%s;" % site.accent_bright,
            "}"]
 
+    out += _theme_css(site.theme)
+
     if site.palette:
         out += ["", "/* もくじカードの枠色（frontmatter の color:） */"]
         out += [".%s{ --frame:%s; }" % (k, v) for k, v in site.palette.items()]
@@ -196,6 +201,42 @@ def site_theme_css(site):
             out.append(".%s .section-line{ background:%s; }" % (sec.cls, bg))
 
     return "\n".join(out) + "\n"
+
+
+def _theme_css(theme):
+    """[theme] に書いた項目だけ、共通部品の飾りの色を上書きする CSS。
+
+    書いていない項目は deck.css / index.css の既定の色のまま。
+    """
+    if not theme:
+        return []
+    v = {}
+    if "bg" in theme:
+        v["--bg"] = theme["bg"]
+    if "bg_dots" in theme:
+        v["--bg-dot-1"], v["--bg-dot-2"] = theme["bg_dots"]
+    if "rainbow" in theme:
+        cs = theme["rainbow"]
+        v["--rainbow"] = cs[0] if len(cs) == 1 else "linear-gradient(90deg,%s)" % ",".join(cs)
+    if "cover_glow" in theme:
+        v["--cover-glow-1"], v["--cover-glow-2"] = theme["cover_glow"]
+    if "hint_bg" in theme:
+        v["--hint-bg"] = theme["hint_bg"]
+    if "qr_frame" in theme:
+        v["--qr-frame"] = theme["qr_frame"]
+
+    out = ["", "/* 共通部品の飾りの色（site.toml の [theme]） */"]
+    if v:
+        out += [":root{"] + ["  %s:%s;" % kv for kv in v.items()] + ["}"]
+    frames = theme.get("slide_frames")
+    if frames:
+        n = len(frames)
+        out += ["", "/* 章ページのスライドの枠色（[theme] slide_frames を順にくり返す） */",
+                "@media screen {"]
+        out += ["  body:not(.mode-present) .slide:nth-of-type(%dn+%d){ --frame:%s; }"
+                % (n, i + 1, c) for i, c in enumerate(frames)]
+        out += ["}"]
+    return out
 
 
 def site_config_js(site):
@@ -235,7 +276,7 @@ def build_assets(site, docs, log):
     # もくじの QR。章の QR と同じく index.html は付けない
     # （短いほうが QR が粗くなって読みとりやすく、ページに出す文字とも合う）
     qr = os.path.join(out, "qr.svg")
-    make_qr(site.base_url, qr + ".tmp")
+    make_qr(site.base_url, qr + ".tmp", site.theme.get("qr_dark", QR_DARK))
     if os.path.exists(qr) and open(qr, "rb").read() == open(qr + ".tmp", "rb").read():
         os.remove(qr + ".tmp")
     else:
@@ -273,7 +314,8 @@ def build_chapter(site, meta, body, chapter_dir, chapter_tpl, docs, warn):
     # 表紙に QR を自動挿入（最初の {cover} の直後）。QRは章フォルダ内 qr.svg
     if "{cover}" in body and "{qr:" not in body:
         body = body.replace("{cover}", "{cover}\n{qr: qr.svg}", 1)
-    make_qr(site.base_url + chapter_dir + "/", os.path.join(out_dir, "qr.svg"))
+    make_qr(site.base_url + chapter_dir + "/", os.path.join(out_dir, "qr.svg"),
+            site.theme.get("qr_dark", QR_DARK))
 
     suffix = site.suffix_for(meta["section"])
     out = (chapter_tpl
