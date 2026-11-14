@@ -305,7 +305,32 @@ def place_managed_files(site, docs, log):
 
 # ---- 章ページ -------------------------------------------------------------
 
-def build_chapter(site, meta, body, chapter_dir, chapter_tpl, docs, warn):
+def next_link_html(meta, nxt):
+    """ページの一番下に出す「つぎの資料」へのリンク。nxt は (meta, dir) か None（最後の章）。
+    編が変わるときは、ラベルに次の編の名前を入れる。印刷・発表モードでは CSS で隠す。"""
+    if nxt is None:
+        label, title, href = "おしまい", "もくじへもどる", "../index.html"
+    else:
+        nmeta, ndir = nxt
+        label = "つぎの資料"
+        if nmeta.get("section") != meta.get("section"):
+            label += "（%s）" % nmeta.get("section", "")
+        emoji = nmeta.get("emoji", "")
+        title = (emoji + " " if emoji else "") + nmeta["nav_title"]
+        href = "../%s/index.html" % ndir
+    lines = [
+        '<nav class="next-chapter">',
+        '  <a href="%s">' % html.escape(href),
+        '    <span class="nc-text"><span class="nc-label">%s</span>'
+        '<span class="nc-title">%s</span></span>' % (html.escape(label), html.escape(title)),
+        '    <span class="nc-arrow">→</span>',
+        '  </a>',
+        '</nav>',
+    ]
+    return chr(10).join(lines)
+
+
+def build_chapter(site, meta, body, chapter_dir, chapter_tpl, docs, warn, nxt=None):
     out_dir = os.path.join(docs, chapter_dir)
     os.makedirs(out_dir, exist_ok=True)
 
@@ -321,6 +346,7 @@ def build_chapter(site, meta, body, chapter_dir, chapter_tpl, docs, warn):
     out = (chapter_tpl
            .replace("{{PAGE_TITLE}}", meta["nav_title"] + suffix)
            .replace("{{NAV_TITLE}}", meta["nav_title"])
+           .replace("{{NEXT}}", next_link_html(meta, nxt))
            .replace("{{BODY}}", body))
     with open(os.path.join(out_dir, "index.html"), "w", encoding="utf-8", newline="\n") as f:
         f.write(out)
@@ -470,9 +496,16 @@ def build(root):
         if meta.get("level") and color not in site.level_palette:
             warn("%s: level: があるのに [palette.level] に '%s' がありません（ラベルが白地になります）"
                  % (d, color))
-        build_chapter(site, meta, body, d, chapter_tpl, docs, warn)
-        chapters.append((meta, d))
+        chapters.append((meta, d, body))
+
+    # もくじと同じ順（編の順 → id を数として比べた順）に並べ、次の章を決めてから組み立てる
+    sec_order = {s.name: i for i, s in enumerate(site.sections)}
+    chapters.sort(key=lambda t: (sec_order[t[0]["section"]], _natural(t[0].get("id", t[1]))))
+    for i, (meta, d, body) in enumerate(chapters):
+        nxt = chapters[i + 1][:2] if i + 1 < len(chapters) else None
+        build_chapter(site, meta, body, d, chapter_tpl, docs, warn, nxt)
         print("  ✓ content/%-18s → docs/%s/" % (d, d))
+    chapters = [(m, d) for (m, d, _b) in chapters]
 
     build_index(site, chapters, index_tpl, docs)
     print("  ✓ もくじ                        → docs/index.html（%d章）" % len(chapters))
