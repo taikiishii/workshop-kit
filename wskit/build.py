@@ -426,6 +426,8 @@ def build_index(site, chapters, index_tpl, docs):
 
     refs = _partial(site, "refs")
     refs = ("\n" + refs + "\n") if refs else ""
+    head_extra = _partial(site, "header")          # 見出しの下の1行（協力団体など）
+    head_extra = (head_extra + "\n") if head_extra else ""
     lic_extra = _partial(site, "license")
     lic_extra = (lic_extra + "\n") if lic_extra else ""
 
@@ -433,6 +435,7 @@ def build_index(site, chapters, index_tpl, docs):
            .replace("{{CHAPTERS}}", "\n\n".join(blocks))
            .replace("{{SITE_TITLE}}", html.escape(site.name))
            .replace("{{HEADER}}", header)
+           .replace("{{HEADER_EXTRA}}", head_extra)
            .replace("{{SITE_URL}}", html.escape(site.base_url))
            .replace("{{ACCENT}}", html.escape(site.accent))
            .replace("{{REFS}}", refs)

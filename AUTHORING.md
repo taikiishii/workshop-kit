@@ -15,6 +15,7 @@ site.toml                   ← この教材だけの設定（URL・セクショ
 content/                    ← ここだけ編集する
   _template/index.md        ← 新しい章のひな形
   _index/                   ← もくじページに足す任意のブロック
+    header.html             ←   見出しの下の1行（協力団体など。<p> で書く。なければ出ない）
     refs.html               ←   「📚 参考リンク」（なければ出ない）
     license.html            ←   第三者素材についての注記（なければ出ない）
   b1_intro/                 ← 章フォルダ（フォルダ名 = <id>_<slug>）
